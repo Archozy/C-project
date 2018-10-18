@@ -2,15 +2,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <SDL2/SDL.h>
-#define SCREENWIDTH 1080
-#define SCREENHEIGHT 520
 
 
-int EnregistrationPhoto(int width, int height, SDL_Renderer* renderer,char* filename){
+
+
+int EnregistrationPhoto(  int width, int height, SDL_Renderer* renderer,char* filename){
 
     SDL_Surface *sshot = SDL_CreateRGBSurface(0, width, height, 32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
 
     int y = SDL_RenderReadPixels(renderer, NULL, SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+    /*for(int y = 0 ; y<yb ; y++){
+        for(int i = 0 ; i<xb; i++){
+
+
+        }
+    }*/
     if(y != 0){
         printf("Error RendererPixelReading : %s", SDL_GetError());
         return -1;
@@ -43,7 +49,12 @@ int EnregistrationPhoto(int width, int height, SDL_Renderer* renderer,char* file
     return 0;
 }
 
-
+void UpdateTex(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
+    texture = SDL_CreateTextureFromSurface(renderer, image);
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture,NULL, NULL);
+    SDL_RenderPresent(renderer);
+}
 Uint32 getpixel(SDL_Surface *surface, int x, int y)
 {
     int bpp = surface->format->BytesPerPixel;
@@ -110,7 +121,42 @@ void setPixel(SDL_Surface *surface, int x, int y, Uint32 pixel)
     }
 }
 
+int deuxCouleurisation(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
+    Uint32 p;
+    Uint8 r,v,b= 100;
 
+
+    Uint32 noir = SDL_MapRGB(image->format, 0,0,0);
+    Uint32 white = SDL_MapRGB(image->format, 255,255,255);
+    for(int y = 0 ; y<image->h ; y++){
+            for(int i = 0 ; i<image->w ; i++){
+                p = getpixel(image, i,y);
+                SDL_GetRGB(p, image->format, &r, &v ,&b);
+
+                int g = (r+v+b)/3;
+
+                if(g  > 255/2){
+                    setPixel(image, i, y, white);
+                }
+                else{
+
+                    setPixel(image, i, y, noir);
+                }
+
+
+            }
+                r = 0;
+                v = 0;
+                b = 0;
+
+        }
+
+
+
+
+
+
+}
 int noirifier(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
     Uint32 p;
     Uint8 r,v,b= 100;
@@ -161,7 +207,7 @@ int detection(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
 
 
     printf("Ajustement des niveaux de noir \n");
-    noirifier(image, renderer, texture);
+    //deuxCouleurisation( image, renderer, texture);
     printf("Ajuste \n");
 
 
@@ -253,7 +299,7 @@ int detection(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
         for(int i = 0 ; i<image->w ; i++){
             p = getpixel(image, i,y);
             SDL_GetRGB(p, image->format, &r, &v ,&b);
-            if((r == 255 && v == 255 && b ==255 || r == 0 && v == 0 && b ==0) && alter > 7){
+            if((r == 255 && v == 255 && b ==255 || r == 0 && v == 0 && b ==0) && alter > 13){
                 for(int o = begins ; o<i-1 ; o++){
                     setPixel(image, o, y, SDL_MapRGB(image->format, 0, 0, 255));
                 }
@@ -294,7 +340,7 @@ int registry(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
     srect.h = 1000;
     srect.w = 500;
 
-    EnregistrationPhoto(SCREENWIDTH, SCREENHEIGHT, renderer, "Neuronal_Network\\preuves");
+    EnregistrationPhoto(image->w , image->h, renderer, "Neuronal_Network\\preuves");
     Uint32 p;
     Uint8 r,v,b = 100;
 
@@ -378,14 +424,12 @@ int registry(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
                 }
                 SDL_RenderPresent(renderer);
                 printf("\n picture : %s ..... start at : %d:%d ; width : %d , height : %d",nomphoto, i, y , srect.w, srect.h);
-                int g = EnregistrationPhoto(SCREENWIDTH, SCREENHEIGHT, renderer, nomphoto);
+                int g = EnregistrationPhoto(image->w, image->h, renderer, nomphoto);
                 if(g != 0){
                     printf("pour : %d", g);
                 }
                 free(nomphoto);
                 i = widthend;
-
-                SDL_Delay(100);
 
             }
 
@@ -406,30 +450,157 @@ int registry(SDL_Surface *image, SDL_Renderer *renderer, SDL_Texture *texture){
 
 }
 
+int rectCollide(SDL_Rect Mouse, SDL_Rect Button){
+    if(Mouse.x >= Button.x && Mouse.x <= (Button.x + Button.w) && Mouse.y >= Button.y && Mouse.y <= (Button.y + Button.h)){
+        return 1;
+    }
+    return 0;
+}
+
+void Menu2(SDL_Rect Souris, SDL_Rect dest, SDL_Event e, SDL_Texture *tex, SDL_Renderer *renderer){
+
+
+}
 int main(int argc, char** argv)
 {
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window * window = SDL_CreateWindow("Alex ça marche",SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,  SCREENWIDTH, SCREENHEIGHT, 0);
+    SDL_Surface * image = SDL_LoadBMP("image_OCR\\TD_1.bmp");
+    SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch.bmp");
+    SDL_Surface * bg = SDL_LoadBMP("Menu\\Fond1.bmp");
+    SDL_Window * window = SDL_CreateWindow("Alex ça marche",SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,  bg->w, bg->h, 0);
     SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
-    SDL_Surface * image = SDL_LoadBMP("photo_OCR_1.bmp");
-
-    if(image == NULL)
-    {
-        printf("Erreur de chargement de l'image : %s",SDL_GetError());
+    if(!window){
+        printf("Erreur de chargement de la fenetre : %s",SDL_GetError());
         return -1;
+
     }
 
 
+    if(image == NULL)
+    {
+        printf("Erreur de chargement de l'image1 : %s",SDL_GetError());
+        return -1;
+    }
+    if(ima== NULL)
+    {
+        printf("Erreur de chargement de l'image2 : %s",SDL_GetError());
+        return -1;
+    }
     SDL_Texture * texture = SDL_CreateTextureFromSurface(renderer, image);
+    SDL_Texture * tex = SDL_CreateTextureFromSurface(renderer, ima);
+    SDL_Texture * background = SDL_CreateTextureFromSurface(renderer, bg);
 
-    SDL_Delay(2000);
+    if(!tex){
+        printf("%s", SDL_GetError());
+    }
+    SDL_Rect dest = {bg->w/2 - ima->w/2, 200, ima->w , ima->h};
+
+    SDL_RenderCopy(renderer, tex, NULL, &dest);
+
+    SDL_FreeSurface(ima);
+
+
+
+    int x,y;
+    int quit = 0;
+    SDL_Rect Souris = {0,0,1,1};
+
+
+    //deuxCouleurisation(image, renderer, texture);
+    //UpdateTex(image, renderer, texture);
+    //SDL_Delay(2000);
+    //detection(image, renderer, texture);
+
+
+    //registry(image, renderer, texture);
+    //Event handler
+    SDL_Event e;
+
+    //While application is running
+    while( !quit )
+    {
+        SDL_GetMouseState(&x, &y);
+
+        Souris.x = x;
+        Souris.y = y;
+
+        //Handle events on queue
+        while( SDL_PollEvent( &e ) != 0 )
+        {
+            //User requests quit
+            if( e.type == SDL_QUIT )
+            {
+                quit = 1;
+            }
+            if(e.type == SDL_MOUSEBUTTONDOWN && rectCollide(Souris, dest)){
+                SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch2.bmp");
+                tex = SDL_CreateTextureFromSurface(renderer, ima);
+                SDL_FreeSurface(ima);
+            }else if(e.type == SDL_MOUSEBUTTONUP && rectCollide(Souris, dest)){
+                /*SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch1.bmp");
+                tex = SDL_CreateTextureFromSurface(renderer, ima);
+                SDL_FreeSurface(ima);*/
+                deuxCouleurisation(image, renderer, texture);
+                SDL_Delay(2000);
+                detection(image, renderer, texture);
+                SDL_Delay(2000);
+                registry(image, renderer, texture);
+            }else if(rectCollide(Souris, dest)){
+                SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch1.bmp");
+                tex = SDL_CreateTextureFromSurface(renderer, ima);
+                SDL_FreeSurface(ima);
+            }else{
+                SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch.bmp");
+                tex = SDL_CreateTextureFromSurface(renderer, ima);
+                SDL_FreeSurface(ima);
+            }
+
+
+
+
+        }
+
+        /*if(!outCase)
+        {
+            if(x >= dest.x && x< (dest.x + u) && y >= dest.y && y < (dest.y + v)){
+                SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch1.bmp");
+                tex = SDL_CreateTextureFromSurface(renderer, ima);
+                SDL_FreeSurface(ima);
+                onCase = 1;
+            }else{
+                SDL_Surface * ima = SDL_LoadBMP("Menu\\Launch.bmp");
+                tex = SDL_CreateTextureFromSurface(renderer, ima);
+                SDL_FreeSurface(ima);
+                onCase = 0;
+
+            }
+        }*/
+
+
+
+        //Clear screen
+        SDL_RenderClear( renderer );
+
+        //Render texture to screen
+        SDL_RenderCopy( renderer, background, NULL, NULL );
+        SDL_RenderCopy( renderer, tex, NULL, &dest );
+
+
+        //Update screen
+        SDL_RenderPresent( renderer );
+        SDL_Delay(33);
+    }
+
+
+
+
+
+
 
     //detection(image, renderer, texture);
-    texture = SDL_CreateTextureFromSurface(renderer, image);
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture,NULL, NULL);
-    SDL_RenderPresent(renderer);
+
     //registry(image, renderer, texture);
+
 
     SDL_Delay(2000);
 
